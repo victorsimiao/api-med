@@ -9,7 +9,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/medicos")
@@ -22,18 +25,29 @@ public class MedicoController {
     }
 
     @PostMapping
-    public ResponseEntity cadastrarMedico(@RequestBody @Valid MedicoRequest medicoRequest) {
+    public ResponseEntity cadastrar(@RequestBody @Valid MedicoRequest medicoRequest) {
         Medico medico = medicoRepository.save(new Medico(medicoRequest));
         return ResponseEntity.status(HttpStatus.CREATED).body(new MedicoResponse(medico));
     }
 
     @GetMapping
-    public ResponseEntity getAllMedicos(@PageableDefault(size = 10, sort = {"nome"}) Pageable pageable) {
-        return ResponseEntity.status(HttpStatus.OK).body(medicoRepository.findAll(pageable).map(MedicoResponse::new));
+    public ResponseEntity getAll(@PageableDefault(size = 10, sort = {"nome"}) Pageable pageable) {
+        return ResponseEntity.status(HttpStatus.OK).body(
+                medicoRepository.findAllByAtivoTrue(pageable).map(MedicoResponse::new));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity getMedico(@PathVariable Long id) {
+    public ResponseEntity get(@PathVariable Long id) {
         return ResponseEntity.status(HttpStatus.OK).body(medicoRepository.findById(id));
+    }
+
+    @DeleteMapping("/{id}")
+    @Transactional
+    public ResponseEntity deletar(@PathVariable Long id) {
+        Optional<Medico> possivelMedico = medicoRepository.findById(id);
+        if (possivelMedico.isPresent()) {
+            possivelMedico.get().excluir();
+        }
+        return ResponseEntity.noContent().build();
     }
 }
